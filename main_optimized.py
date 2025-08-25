@@ -24,7 +24,7 @@ from telegram.error import TelegramError, RetryAfter, TimedOut
 
 # Local imports
 from config import get_settings, validate_environment
-from cache_system import AdvancedCacheSystem, CacheKey
+from cache_system import AdvancedCacheSystem, CacheKey, get_file_hash
 from database import initialize_database, get_database_manager
 from translator import AdvancedTranslator
 from pdf_builder import create_translated_pdf
@@ -408,7 +408,7 @@ class OptimizedTranslationBot:
             # Download photo
             file = await photo.get_file()
             file_bytes = await file.download_as_bytearray()
-            file_hash = CacheKey.get_file_hash(bytes(file_bytes))
+            file_hash = get_file_hash(bytes(file_bytes))
 
             # Check cache
             cache_key = CacheKey.file_processing_key(file_hash)
@@ -522,7 +522,7 @@ class OptimizedTranslationBot:
             # Check file hash for duplicates
             file = await document.get_file()
             file_bytes = await file.download_as_bytearray()
-            file_hash = CacheKey.get_file_hash(bytes(file_bytes))
+            file_hash = get_file_hash(bytes(file_bytes))
 
             # Check if file was already processed
             cache_key = CacheKey.file_processing_key(file_hash)
