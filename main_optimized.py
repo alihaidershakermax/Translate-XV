@@ -406,7 +406,8 @@ class OptimizedTranslationBot:
                 return
 
             # Download photo
-            file_bytes = await photo.get_file().download_as_bytearray()
+            file = await photo.get_file()
+            file_bytes = await file.download_as_bytearray()
             file_hash = CacheKey.get_file_hash(bytes(file_bytes))
 
             # Check cache
@@ -519,7 +520,8 @@ class OptimizedTranslationBot:
                 return
 
             # Check file hash for duplicates
-            file_bytes = await document.get_file().download_as_bytearray()
+            file = await document.get_file()
+            file_bytes = await file.download_as_bytearray()
             file_hash = CacheKey.get_file_hash(bytes(file_bytes))
 
             # Check if file was already processed
