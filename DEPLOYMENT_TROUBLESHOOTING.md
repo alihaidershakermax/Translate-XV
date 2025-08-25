@@ -14,6 +14,16 @@
 - Updated [render.yaml](./render.yaml) build command
 - Added `uv.lock` to [.dockerignore](./.dockerignore)
 
+#### Issue: `azure-cognitiveservices-language-translator` not found
+**Error**: `ERROR: No matching distribution found for azure-cognitiveservices-language-translator>=3.0.0`
+
+**Solution**: ✅ **FIXED** - Removed problematic Azure dependency since it's optional
+
+**What was done**:
+- Removed incorrect Azure package from [requirements.txt](./requirements.txt)
+- Azure is now optional (use [requirements-azure.txt](./requirements-azure.txt) if needed)
+- Groq is the primary service, Gemini and OpenAI are sufficient fallbacks
+
 #### Issue: Missing dependencies
 **Error**: `ModuleNotFoundError: No module named 'xxx'`
 

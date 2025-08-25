@@ -8,7 +8,7 @@ python-telegram-bot[webhooks]>=22.3
 groq>=0.31.0
 google-generativeai>=0.8.0
 openai>=1.50.0
-azure-cognitiveservices-language-translator>=3.0.0
+# Note: Azure Translator can be added later if needed
 
 # Document Processing
 pdfplumber>=0.11.7

@@ -64,7 +64,7 @@ class APIManager:
                     daily_limit=500
                 ))
                 
-        # مفاتيح Azure
+        # مفاتيح Azure (اختيارية - غير مثبتة حالياً)
         azure_keys = os.getenv("AZURE_KEYS", "").split(",")
         for key in azure_keys:
             if key.strip():

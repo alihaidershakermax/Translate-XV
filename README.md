@@ -9,7 +9,7 @@
 ## ✨ Features
 
 ### 🚀 **Core Translation Features**
-- **Multi-API Support**: Groq (Primary), Gemini, OpenAI, Azure Translator (Fallbacks)
+- **Multi-API Support**: Groq (Primary), Gemini, OpenAI (Fallbacks), Azure (Optional)
 - **Document Processing**: PDF, DOCX, PPTX, Images (OCR)
 - **Smart Text Detection**: Automatic text type detection (technical, academic, general)
 - **Context-Aware Translation**: Maintains context across document sections
@@ -75,7 +75,8 @@ graph TB
 - Python 3.11+
 - Telegram Bot Token from [@BotFather](https://t.me/BotFather)
 - **Groq API key** (Primary AI service) from [Groq Console](https://console.groq.com/)
-- Optional: Additional AI API keys for fallback (Gemini, OpenAI, Azure)
+- Optional: Additional AI API keys for fallback (Gemini, OpenAI)
+- Optional: Azure Translator (see [requirements-azure.txt](./requirements-azure.txt))
 - PostgreSQL database (optional, uses in-memory if not available)
 - Redis server (optional, uses memory cache if not available)
 

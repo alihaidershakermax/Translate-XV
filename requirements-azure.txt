@@ -1,0 +1,20 @@
+# Optional Azure Translator Support
+# Install these if you want to use Azure Translator as a fallback service
+
+# Azure Translator (choose one of these packages):
+
+# Option 1: Azure AI Translation Text (recommended)
+# azure-ai-translation-text>=1.0.0
+
+# Option 2: Azure Cognitive Services (older API)
+# azure-cognitiveservices-language>=0.1.0
+
+# Installation instructions:
+# 1. Choose one of the packages above
+# 2. Uncomment the line
+# 3. Install with: pip install -r requirements-azure.txt
+# 4. Add your Azure keys to AZURE_KEYS environment variable
+# 5. Update translator.py to include Azure client initialization
+
+# Note: Azure support requires additional code changes in translator.py
+# The current implementation focuses on Groq (primary) with Gemini and OpenAI as fallbacks
