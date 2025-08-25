@@ -945,25 +945,53 @@ class OptimizedTranslationBot:
             logger.error(f"Update {update} caused error {context.error}")
     
     async def run(self):
-        """Run the bot with webhook or polling"""
-        await self.initialize()
+        """Run the bot with webhook or polling (without reinitialization)"""
+        # Don't reinitialize if already initialized from start_bot.py
+        if not self.application:
+            await self.initialize()
         
         try:
+            # Start the application
+            await self.application.initialize()
+            await self.application.start()
+            
             if self.settings.webhook_url and self.settings.environment.value == "production":
                 # Use webhook in production
-                await self.application.run_webhook(
+                logger.info(f"Starting webhook server on port {int(os.getenv('PORT', 8080))}")
+                await self.application.updater.start_webhook(
                     listen="0.0.0.0",
                     port=int(os.getenv("PORT", 8080)),
                     webhook_url=self.settings.webhook_url,
-                    secret_token=self.settings.webhook_secret
+                    secret_token=self.settings.webhook_secret,
+                    drop_pending_updates=True
                 )
+                
+                # Keep running until shutdown
+                while not self.shutdown_requested:
+                    await asyncio.sleep(1)
+                    
             else:
                 # Use polling in development
-                await self.application.run_polling(drop_pending_updates=True)
+                logger.info("Starting polling...")
+                await self.application.updater.start_polling(drop_pending_updates=True)
                 
+                # Keep running until shutdown
+                while not self.shutdown_requested:
+                    await asyncio.sleep(1)
+                    
         except Exception as e:
             logger.error(f"Bot run error: {e}")
             raise
+        finally:
+            # Graceful shutdown
+            try:
+                if self.application.updater.running:
+                    await self.application.updater.stop()
+                if self.application.running:
+                    await self.application.stop()
+                await self.application.shutdown()
+            except Exception as e:
+                logger.error(f"Error during application shutdown: {e}")
     
     async def shutdown(self):
         """Graceful shutdown"""

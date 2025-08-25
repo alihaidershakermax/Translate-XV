@@ -236,8 +236,8 @@ class ProductionBotRunner:
             cleanup_tasks.append(self.db_manager.close())
         
         # Close cache connections
-        if self.cache_system and self.cache_system.redis_client:
-            cleanup_tasks.append(self.cache_system.redis_client.aclose())
+        if self.cache_system:
+            cleanup_tasks.append(self.cache_system.close())
         
         # Execute all cleanup tasks
         if cleanup_tasks:

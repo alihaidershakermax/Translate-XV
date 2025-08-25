@@ -133,6 +133,10 @@ class InMemoryCache:
         """Clear all cache entries"""
         self.cache.clear()
         self.access_times.clear()
+    
+    async def cleanup_expired(self):
+        """Public method to clean up expired entries"""
+        self._cleanup_expired()
 
 class AdvancedCacheSystem:
     """Advanced caching system with Redis and in-memory fallback"""
@@ -303,6 +307,23 @@ class AdvancedCacheSystem:
     def clear_memory_cache(self):
         """Clear memory cache"""
         self.memory_cache.clear()
+    
+    async def close(self):
+        """Close Redis connection properly"""
+        if self.redis_client:
+            try:
+                await self.redis_client.aclose()
+                logger.info("Redis connection closed")
+            except Exception as e:
+                logger.warning(f"Error closing Redis connection: {e}")
+    
+    async def cleanup_expired(self):
+        """Clean up expired entries from memory cache"""
+        try:
+            await self.memory_cache.cleanup_expired()
+            logger.debug("Memory cache cleanup completed")
+        except Exception as e:
+            logger.warning(f"Memory cache cleanup failed: {e}")
         logger.info("Memory cache cleared")
 
 # Cache decorators for common use cases
