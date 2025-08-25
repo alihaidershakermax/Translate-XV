@@ -14,7 +14,7 @@ class QueueTask:
         self.user_id = task_data['user_id']
         self.file_name = task_data['file_name']
         self.file_size = task_data['file_size']
-        self.file = task_data['file']
+        self.file = task_data['file_bytes']  # <-- تم التغيير هنا
         self.created_at = datetime.now()
         self.priority = self.calculate_priority(task_data)
         self.estimated_time = self.estimate_processing_time(task_data)
