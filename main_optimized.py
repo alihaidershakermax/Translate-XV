@@ -235,6 +235,259 @@ class OptimizedTranslationBot:
             reply_markup=reply_markup
         )
     
+    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Enhanced help command with comprehensive information"""
+        help_text = """
+📖 **دليل الاستخدام الكامل**
+
+🎯 **الأوامر المتاحة:**
+• `/start` - بدء استخدام البوت
+• `/help` - عرض هذه المساعدة
+• `/status` - حالة طلباتك الحالية
+• `/stats` - إحصائيات الاستخدام
+
+📄 **أنواع الملفات المدعومة:**
+• PDF - ملفات المستندات
+• DOCX - مستندات Word (قريباً)
+• PPTX - عروض PowerPoint (قريباً)
+• JPG/PNG - الصور والمسح الضوئي
+
+🌐 **اللغات المدعومة:**
+• العربية ↔ الإنجليزية
+• الفرنسية ↔ العربية
+• الألمانية ↔ العربية
+• وأكثر من 50 لغة أخرى
+
+⚡ **مميزات متقدمة:**
+• OCR للنصوص في الصور
+• الحفاظ على التنسيق الأصلي
+• ترجمة الجداول والرسوم
+• نظام طابور ذكي محسّن
+• ترجمة فقرة بفقرة
+• تخزين مؤقت متقدم للسرعة
+
+📊 **حدود الاستخدام:**
+• المستخدم العادي: {self.settings.daily_limit_per_user} ملف/يوم
+• حجم الملف الأقصى: {self.settings.max_file_size_mb} ميجابايت
+
+🔧 للمساعدة التقنية: @support_channel
+        """
+        await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def status_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Enhanced status command with database integration"""
+        user_id = update.effective_user.id
+        
+        # Get user stats from cache or database
+        cache_key = CacheKey.user_quota_key(user_id)
+        user_stats = await self.cache_system.get(cache_key)
+        
+        if not user_stats and self.db_manager.is_initialized:
+            user_stats = await self.db_manager.get_user_stats(user_id)
+            if user_stats:
+                await self.cache_system.set(cache_key, user_stats, ttl=300)
+        
+        # Get queue information
+        queue_position = self.queue_system.get_user_queue_position(user_id) if hasattr(self.queue_system, 'get_user_queue_position') else "لا توجد طلبات"
+        
+        status_text = f"""
+📊 **حالة حسابك**
+
+👤 **معلومات المستخدم:**
+🆔 المعرف: `{user_id}`
+📅 تاريخ التسجيل: {user_stats.get('join_date', 'غير محدد') if user_stats else 'غير محدد'}
+⭐ المستوى: {user_stats.get('level', 'عادي') if user_stats else 'عادي'}
+
+📈 **إحصائيات اليوم:**
+📥 الطلبات: {user_stats.get('daily_requests', 0) if user_stats else 0}/{self.settings.daily_limit_per_user}
+✅ مكتملة: {user_stats.get('completed_today', 0) if user_stats else 0}
+⏳ قيد المعالجة: {user_stats.get('processing', 0) if user_stats else 0}
+
+🎯 **حالة الطابور:**
+📍 موقعك في الطابور: {queue_position}
+⏰ الوقت المتوقع: {self.queue_system.estimate_wait_time(user_id) if hasattr(self.queue_system, 'estimate_wait_time') else 'غير محدد'}
+
+📊 **إحصائيات إجمالية:**
+📄 إجمالي الملفات: {user_stats.get('total_files', 0) if user_stats else 0}
+⭐ تقييم الخدمة: {user_stats.get('rating', 'لم يتم التقييم') if user_stats else 'لم يتم التقييم'}
+        """
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 تحديث", callback_data="refresh_status")],
+            [InlineKeyboardButton("📋 تاريخ الطلبات", callback_data="request_history")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            status_text, 
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=reply_markup
+        )
+    
+    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """System statistics command"""
+        user_id = update.effective_user.id
+        
+        # Get system stats
+        system_info = {
+            'uptime': time.time() - self.start_time,
+            'request_count': self.request_count,
+            'error_count': self.error_count,
+            'queue_size': len(self.queue_system.tasks) if hasattr(self.queue_system, 'tasks') else 0,
+            'active_tasks': len([task for task in self.background_tasks if not task.done()])
+        }
+        
+        stats_text = f"""
+📊 **إحصائيات النظام**
+
+⏰ **وقت التشغيل:** {system_info['uptime']/3600:.1f} ساعة
+📥 **إجمالي الطلبات:** {system_info['request_count']}
+❌ **الأخطاء:** {system_info['error_count']}
+🔄 **حجم الطابور:** {system_info['queue_size']}
+⚡ **المهام النشطة:** {system_info['active_tasks']}
+
+📈 **معدل النجاح:** {((system_info['request_count'] - system_info['error_count']) / max(system_info['request_count'], 1) * 100):.1f}%
+        """
+        
+        await update.message.reply_text(stats_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle button callbacks"""
+        query = update.callback_query
+        await query.answer()
+        
+        try:
+            if query.data == "my_stats":
+                await self._show_user_stats(query)
+            elif query.data == "help":
+                await self._show_help_callback(query)
+            elif query.data == "settings":
+                await self._show_settings(query)
+            elif query.data == "refresh_status":
+                await self._refresh_status(query)
+            elif query.data.startswith("track_"):
+                task_id = query.data.split("_")[1]
+                await self._track_task(query, task_id)
+            elif query.data.startswith("cancel_"):
+                task_id = query.data.split("_")[1]
+                await self._cancel_task(query, task_id)
+        except Exception as e:
+            logger.error(f"Error handling callback {query.data}: {e}")
+            await query.edit_message_text("❌ حدث خطأ أثناء معالجة طلبك.")
+    
+    async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle photo messages for OCR translation"""
+        user_id = update.effective_user.id
+        self.request_count += 1
+        
+        try:
+            # Check user limits
+            if not await self._check_user_limits(user_id):
+                await update.message.reply_text(
+                    "⚠️ لقد تجاوزت حدودك اليومية للملفات.\n"
+                    "🔄 جرب مرة أخرى غداً أو ترقى لحساب مميز."
+                )
+                return
+            
+            photo = update.message.photo[-1]  # Get highest resolution
+            
+            # Validate file size
+            if photo.file_size > self.settings.max_file_size_mb * 1024 * 1024:
+                await update.message.reply_text(
+                    f"❌ حجم الصورة كبير جداً.\n"
+                    f"📏 الحد الأقصى: {self.settings.max_file_size_mb} ميجابايت"
+                )
+                return
+            
+            # Download photo
+            file_bytes = await photo.get_file().download_as_bytearray()
+            file_hash = CacheKey.get_file_hash(bytes(file_bytes))
+            
+            # Check cache
+            cache_key = CacheKey.file_processing_key(file_hash)
+            cached_result = await self.cache_system.get(cache_key)
+            
+            if cached_result:
+                logger.info(f"Serving cached result for photo hash: {file_hash[:12]}...")
+                await self._send_cached_result(update, cached_result)
+                return
+            
+            # Add to queue
+            task_data = {
+                'user_id': user_id,
+                'file_bytes': file_bytes,
+                'file_name': f'photo_{photo.file_id}.jpg',
+                'file_size': photo.file_size,
+                'file_hash': file_hash,
+                'message_id': update.message.message_id,
+                'chat_id': update.effective_chat.id,
+                'timestamp': datetime.now(),
+                'file_type': 'photo'
+            }
+            
+            task_id = self.queue_system.add_task(task_data)
+            
+            await update.message.reply_text(
+                f"📷 **تم استلام الصورة!**\n\n"
+                f"📊 الحجم: {photo.file_size / 1024:.1f} KB\n"
+                f"🔄 سيتم استخراج النص وترجمته\n\n"
+                f"⏳ يرجى الانتظار...",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+            # Update user usage
+            await self._update_user_usage(user_id, photo.file_size)
+            
+        except Exception as e:
+            logger.error(f"Error handling photo from user {user_id}: {e}")
+            self.error_count += 1
+            await update.message.reply_text(
+                "❌ حدث خطأ أثناء معالجة الصورة. يرجى المحاولة مرة أخرى."
+            )
+    
+    async def handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle text messages for direct translation"""
+        user_id = update.effective_user.id
+        text = update.message.text
+        
+        # Skip very short texts
+        if len(text.strip()) < 5:
+            await update.message.reply_text(
+                "📝 أرسل نصاً أطول للترجمة أو استخدم الملفات للترجمة المتقدمة."
+            )
+            return
+        
+        try:
+            # Check user limits
+            if not await self._check_user_limits(user_id):
+                await update.message.reply_text(
+                    "⚠️ لقد تجاوزت حدودك اليومية.\n"
+                    "🔄 جرب مرة أخرى غداً."
+                )
+                return
+            
+            # Show typing indicator
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+            
+            # Translate text directly
+            translated_text = await self.translator.translate_advanced(
+                text, user_id, target_lang="ar"
+            )
+            
+            await update.message.reply_text(
+                f"🌐 **الترجمة:**\n\n{translated_text}",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+            # Update usage (count text as small request)
+            await self._update_user_usage(user_id, len(text.encode('utf-8')))
+            
+        except Exception as e:
+            logger.error(f"Error translating text for user {user_id}: {e}")
+            await update.message.reply_text(
+                "❌ حدث خطأ أثناء الترجمة. يرجى المحاولة مرة أخرى."
+            )
+
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Optimized document handling with async processing"""
         user_id = update.effective_user.id
@@ -317,6 +570,204 @@ class OptimizedTranslationBot:
                 "❌ حدث خطأ أثناء معالجة الملف. يرجى المحاولة مرة أخرى."
             )
     
+    async def _show_user_stats(self, query):
+        """Show detailed user statistics"""
+        user_id = query.from_user.id
+        
+        # Get user stats from database
+        user_stats = {}
+        if self.db_manager.is_initialized:
+            user_stats = await self.db_manager.get_user_stats(user_id)
+        
+        stats_text = f"""
+📊 **إحصائياتك التفصيلية**
+
+📈 **الاستخدام:**
+• الملفات اليوم: {user_stats.get('daily_requests', 0)}/{self.settings.daily_limit_per_user}
+• إجمالي الملفات: {user_stats.get('total_requests', 0)}
+• معدل النجاح: {user_stats.get('success_rate', 0):.1f}%
+
+⏰ **الوقت:**
+• متوسط وقت المعالجة: {user_stats.get('avg_processing_time', 0):.1f}ث
+• إجمالي الوقت المستخدم: {user_stats.get('total_time', 0):.1f}ث
+
+🎯 **التقييم:**
+• تقييمك للخدمة: {user_stats.get('rating', 'لم يتم التقييم')}/5
+• عدد التقييمات: {user_stats.get('rating_count', 0)}
+        """
+        
+        await query.edit_message_text(
+            stats_text, 
+            parse_mode=ParseMode.MARKDOWN
+        )
+    
+    async def _show_help_callback(self, query):
+        """Show help in callback"""
+        help_text = "📖 **مساعدة سريعة**\n\n• أرسل ملف PDF أو صورة\n• انتظر الترجمة\n• استخدم /help للتفاصيل"
+        await query.edit_message_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def _show_settings(self, query):
+        """Show user settings"""
+        settings_text = "🔧 **الإعدادات**\n\nهذه الميزة قيد التطوير 🚀"
+        await query.edit_message_text(settings_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def _refresh_status(self, query):
+        """Refresh user status"""
+        # Refresh by calling status command logic
+        user_id = query.from_user.id
+        
+        # Clear cache to get fresh data
+        cache_key = CacheKey.user_quota_key(user_id)
+        await self.cache_system.delete(cache_key)
+        
+        await query.edit_message_text("🔄 تم تحديث الحالة بنجاح!")
+    
+    async def _track_task(self, query, task_id):
+        """Track task progress"""
+        # Get task status from queue system
+        task_status = self.queue_system.get_task_status(task_id) if hasattr(self.queue_system, 'get_task_status') else "غير موجود"
+        
+        track_text = f"🔍 **تتبع الطلب**\n\n🆔 معرف المهمة: `{task_id}`\n📊 الحالة: {task_status}"
+        await query.edit_message_text(track_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def _cancel_task(self, query, task_id):
+        """Cancel a task"""
+        # Cancel task in queue system
+        cancelled = self.queue_system.cancel_task(task_id) if hasattr(self.queue_system, 'cancel_task') else False
+        
+        if cancelled:
+            await query.edit_message_text("❌ تم إلغاء الطلب بنجاح")
+        else:
+            await query.edit_message_text("⚠️ لا يمكن إلغاء هذا الطلب")
+    
+    async def _send_cached_result(self, update, cached_data):
+        """Send cached translation result"""
+        try:
+            if 'output_data' in cached_data:
+                # Send file result
+                await update.message.reply_document(
+                    document=cached_data['output_data'],
+                    caption=f"✨ **نتيجة محفوظة**\n\n📝 الملف: {cached_data.get('original_name', 'غير محدد')}\n⏰ معالج في: {cached_data.get('processed_at', '')}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                # Send text result
+                await update.message.reply_text(
+                    f"✨ **نتيجة محفوظة**\n\n{cached_data.get('translated_text', '')}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+        except Exception as e:
+            logger.error(f"Error sending cached result: {e}")
+            await update.message.reply_text("❌ حدث خطأ في إرسال النتيجة المحفوظة")
+    
+    async def _send_translation_result(self, user_id: int, output_data: bytes, original_filename: str):
+        """Send translation result to user"""
+        try:
+            # Send via bot application
+            await self.application.bot.send_document(
+                chat_id=user_id,
+                document=output_data,
+                filename=f"translated_{original_filename}",
+                caption=f"✅ **تمت الترجمة بنجاح!**\n\n📄 الملف: {original_filename}",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"Error sending result to user {user_id}: {e}")
+            await self._notify_user_error(user_id, "حدث خطأ في إرسال النتيجة")
+    
+    async def _notify_user_error(self, user_id: int, error_message: str):
+        """Notify user of error"""
+        try:
+            await self.application.bot.send_message(
+                chat_id=user_id,
+                text=f"❌ **خطأ**\n\n{error_message}",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        except Exception as e:
+            logger.error(f"Error notifying user {user_id} of error: {e}")
+    
+    async def _create_output_file_async(self, translated_text: str, original_filename: str) -> bytes:
+        """Create output file asynchronously"""
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            self.thread_pool, 
+            self._create_output_file_sync, 
+            translated_text, 
+            original_filename
+        )
+    
+    def _create_output_file_sync(self, translated_text: str, original_filename: str) -> bytes:
+        """Create output file synchronously"""
+        try:
+            from pdf_builder import create_translated_pdf
+            import io
+            
+            # Create PDF with translated text
+            output_buffer = io.BytesIO()
+            create_translated_pdf(translated_text, output_buffer, original_filename)
+            output_buffer.seek(0)
+            return output_buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error creating output file: {e}")
+            # Fallback: create simple text file
+            return translated_text.encode('utf-8')
+    
+    async def _update_success_stats(self, user_id: int, processing_time: float):
+        """Update success statistics"""
+        try:
+            if self.db_manager.is_initialized:
+                await self.db_manager.update_user_stats(
+                    user_id=user_id,
+                    successful_requests=1,
+                    processing_time=processing_time
+                )
+        except Exception as e:
+            logger.error(f"Error updating success stats for user {user_id}: {e}")
+    
+    async def _stats_updater(self):
+        """Background task to update statistics"""
+        while not self.shutdown_requested:
+            try:
+                # Update system statistics every 5 minutes
+                await asyncio.sleep(300)
+                
+                if self.db_manager.is_initialized:
+                    await self.db_manager.update_system_stats()
+                    
+            except Exception as e:
+                logger.error(f"Error in stats updater: {e}")
+                await asyncio.sleep(60)
+    
+    async def _cache_cleanup(self):
+        """Background task to clean up cache"""
+        while not self.shutdown_requested:
+            try:
+                # Clean up cache every hour
+                await asyncio.sleep(3600)
+                
+                await self.cache_system.cleanup_expired()
+                logger.info("Cache cleanup completed")
+                
+            except Exception as e:
+                logger.error(f"Error in cache cleanup: {e}")
+                await asyncio.sleep(300)
+    
+    async def _database_cleanup(self):
+        """Background task to clean up database"""
+        while not self.shutdown_requested:
+            try:
+                # Clean up database every day
+                await asyncio.sleep(86400)
+                
+                if self.db_manager.is_initialized:
+                    await self.db_manager.cleanup_old_data()
+                    logger.info("Database cleanup completed")
+                
+            except Exception as e:
+                logger.error(f"Error in database cleanup: {e}")
+                await asyncio.sleep(3600)
+
     async def _check_user_limits(self, user_id: int) -> bool:
         """Check user limits with caching"""
         cache_key = CacheKey.user_quota_key(user_id)
