@@ -14,6 +14,16 @@
 - Updated [render.yaml](./render.yaml) build command
 - Added `uv.lock` to [.dockerignore](./.dockerignore)
 
+#### Issue: SQLAlchemy metadata attribute conflict
+**Error**: `InvalidRequestError: Attribute name 'metadata' is reserved when using the Declarative API`
+
+**Solution**: ✅ **FIXED** - Renamed conflicting database field
+
+**What was done**:
+- Renamed `metadata` column to `request_metadata` in [database.py](./database.py)
+- Avoided SQLAlchemy reserved attribute name conflict
+- Database schema remains functionally identical
+
 #### Issue: Pydantic BaseSettings import error
 **Error**: `PydanticImportError: BaseSettings has been moved to the pydantic-settings package`
 

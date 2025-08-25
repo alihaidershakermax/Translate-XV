@@ -59,7 +59,7 @@ class TranslationRequest(Base):
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     error_message = Column(Text, nullable=True)
-    metadata = Column(JSON, default=dict)
+    request_metadata = Column(JSON, default=dict)
 
 class DailyUsage(Base):
     """Daily usage tracking for users"""
