@@ -237,7 +237,7 @@ class ProductionBotRunner:
         
         # Close cache connections
         if self.cache_system and self.cache_system.redis_client:
-            cleanup_tasks.append(self.cache_system.redis_client.close())
+            cleanup_tasks.append(self.cache_system.redis_client.aclose())
         
         # Execute all cleanup tasks
         if cleanup_tasks:
