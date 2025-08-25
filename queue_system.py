@@ -1,4 +1,3 @@
-
 import uuid
 import asyncio
 from datetime import datetime, timedelta
@@ -14,7 +13,7 @@ class QueueTask:
         self.user_id = task_data['user_id']
         self.file_name = task_data['file_name']
         self.file_size = task_data['file_size']
-        self.file = task_data['file']
+        self.file = task_data['file_bytes'] # <--- تم التعديل هنا
         self.created_at = datetime.now()
         self.priority = self.calculate_priority(task_data)
         self.estimated_time = self.estimate_processing_time(task_data)
@@ -72,6 +71,8 @@ class QueueSystem:
         # إضافة للطابور المناسب حسب الأولوية
         if task.priority > 150:
             self.priority_queue.append(task)
+        elif self.priority_queue:
+            self.main_queue.appendleft(task)
         else:
             self.main_queue.append(task)
             

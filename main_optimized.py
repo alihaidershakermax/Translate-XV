@@ -199,9 +199,7 @@ class OptimizedTranslationBot:
                 await self.cache_system.set(cache_key, user_stats, ttl=300)
         
         welcome_text = f"""
-🤖 **مرحباً بك في نظام الترجمة المتقدم المُحسَّن** 
-
-👋 أهلاً {user.first_name or user.username}!
+🤖 **مرحباً بك في نظام الترجمة المتقدم المُحسَّن** 👋 أهلاً {user.first_name or user.username}!
 
 ✨ **الميزات الجديدة:**
 ⚡ معالجة فائقة السرعة مع التخزين المؤقت
@@ -283,7 +281,7 @@ class OptimizedTranslationBot:
         user_stats = await self.cache_system.get(cache_key)
         
         if not user_stats and self.db_manager.is_initialized:
-            user_stats = await self.db_manager.get_user_stats(user_id)
+            user_stats = await self.db_manager.get_user_stats(user.id)
             if user_stats:
                 await self.cache_system.set(cache_key, user_stats, ttl=300)
         
@@ -704,7 +702,7 @@ class OptimizedTranslationBot:
             
             # Create PDF with translated text
             output_buffer = io.BytesIO()
-            create_translated_pdf(translated_text, output_buffer, original_filename)
+            create_translated_pdf(translated_text, output_buffer) # <--- هنا لم يتم تعديل السطر في الردود السابقة
             output_buffer.seek(0)
             return output_buffer.getvalue()
             
@@ -844,7 +842,7 @@ class OptimizedTranslationBot:
             start_time = time.time()
             
             # Extract text from file
-            extracted_text = await self._extract_text_async(task.file_bytes, task.file_name)
+            extracted_text = await self._extract_text_async(task.file, task.file_name) # <--- تم التعديل هنا
             
             if not extracted_text.strip():
                 await self._notify_user_error(user_id, "لم يتم العثور على نص قابل للترجمة")
