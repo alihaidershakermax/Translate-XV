@@ -2,7 +2,7 @@ services:
   - type: web
     name: translation-bot
     env: python
-    buildCommand: pip install -e .
+    buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     plan: starter
     region: oregon

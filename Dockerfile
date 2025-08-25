@@ -22,9 +22,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
-COPY pyproject.toml uv.lock ./
-RUN pip install uv && uv sync --frozen
+# Copy dependency files
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -41,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Run the application
-CMD ["python", "main.py"]
+CMD ["python", "start_bot.py"]
