@@ -98,7 +98,14 @@ class ProductionBotRunner:
 
             # 6. Initialize health check server
             logger.info("🏥 Starting health check server...")
-            port = self.settings.metrics_port
+            port = int(os.getenv("PORT", self.settings.metrics_port))
+
+            # Automatically resolve port conflicts
+            if self.settings.webhook_url and port == int(os.getenv("PORT", 8080)):
+                logger.warning(f"Port conflict detected. Health server port {port} is the same as the webhook port.")
+                port += 1
+                logger.warning(f"Automatically changed health server port to {port}.")
+
             self.health_server = create_health_server(port=port)
 
             # Set component references for health checks
