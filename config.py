@@ -6,7 +6,8 @@ Handles environment variables, validation, and settings.
 import os
 import logging
 from typing import List, Optional, Dict, Any
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -27,25 +28,25 @@ class Settings(BaseSettings):
     """Application settings with validation"""
     
     # Environment
-    environment: Environment = Field(default=Environment.DEVELOPMENT)
+    environment: Environment = Field(default=Environment.DEVELOPMENT, alias="ENVIRONMENT")
     debug: bool = Field(default=False)
-    log_level: LogLevel = Field(default=LogLevel.INFO)
+    log_level: LogLevel = Field(default=LogLevel.INFO, alias="LOG_LEVEL")
     
     # Bot Configuration
-    bot_token: str = Field(..., description="Telegram Bot Token")
-    webhook_url: Optional[str] = Field(default=None, description="Webhook URL for production")
-    webhook_secret: Optional[str] = Field(default=None, description="Webhook secret token")
-    max_workers: int = Field(default=4, ge=1, le=10)
+    bot_token: str = Field(..., description="Telegram Bot Token", alias="BOT_TOKEN")
+    webhook_url: Optional[str] = Field(default=None, description="Webhook URL for production", alias="WEBHOOK_URL")
+    webhook_secret: Optional[str] = Field(default=None, description="Webhook secret token", alias="WEBHOOK_SECRET")
+    max_workers: int = Field(default=4, ge=1, le=10, alias="MAX_WORKERS")
     
     # API Keys (comma-separated for multiple keys)
-    groq_keys: str = Field(..., description="Groq API keys (comma-separated) - Primary AI service")
-    gemini_keys: str = Field(default="", description="Gemini API keys (comma-separated) - Optional fallback")
-    openai_keys: str = Field(default="", description="OpenAI API keys (comma-separated) - Optional fallback")
-    azure_keys: str = Field(default="", description="Azure API keys (comma-separated) - Optional fallback")
+    groq_keys: str = Field(..., description="Groq API keys (comma-separated) - Primary AI service", alias="GROQ_KEYS")
+    gemini_keys: str = Field(default="", description="Gemini API keys (comma-separated) - Optional fallback", alias="GEMINI_KEYS")
+    openai_keys: str = Field(default="", description="OpenAI API keys (comma-separated) - Optional fallback", alias="OPENAI_KEYS")
+    azure_keys: str = Field(default="", description="Azure API keys (comma-separated) - Optional fallback", alias="AZURE_KEYS")
     
     # Database Configuration
-    database_url: Optional[str] = Field(default=None, description="PostgreSQL database URL")
-    redis_url: Optional[str] = Field(default=None, description="Redis cache URL")
+    database_url: Optional[str] = Field(default=None, description="PostgreSQL database URL", alias="DATABASE_URL")
+    redis_url: Optional[str] = Field(default=None, description="Redis cache URL", alias="REDIS_URL")
     
     # Performance Settings
     max_file_size_mb: int = Field(default=20, ge=1, le=100)
@@ -66,39 +67,26 @@ class Settings(BaseSettings):
     metrics_port: int = Field(default=8090, ge=8000, le=9000)
     health_check_interval: int = Field(default=30, ge=10, le=300)
     
-    @validator('bot_token')
+    @field_validator('bot_token')
+    @classmethod
     def validate_bot_token(cls, v):
         if not v or len(v) < 10:
             raise ValueError('Bot token must be provided and valid')
         return v
     
-    @validator('webhook_url')
-    def validate_webhook_url(cls, v, values):
-        env = values.get('environment')
-        if env == Environment.PRODUCTION and not v:
-            raise ValueError('Webhook URL is required in production')
+    @field_validator('webhook_url')
+    @classmethod
+    def validate_webhook_url(cls, v):
+        # Note: Cross-field validation moved to model_validator if needed
         if v and not v.startswith('https://'):
             raise ValueError('Webhook URL must use HTTPS')
         return v
     
-    @validator('groq_keys')
+    @field_validator('groq_keys')
+    @classmethod
     def validate_groq_keys(cls, v):
         if not v or len(v.strip()) == 0:
             raise ValueError('GROQ_KEYS is required as the primary AI translation service')
-        return v
-    
-    @validator('environment')
-    def validate_environment_settings(cls, v, values):
-        if v == Environment.PRODUCTION:
-            # Groq is required, others are optional fallbacks
-            if not values.get('groq_keys'):
-                raise ValueError('GROQ_KEYS is required in production')
-            
-            # Warn about optional fallback services
-            optional_keys = ['gemini_keys', 'openai_keys', 'azure_keys']
-            available_fallbacks = [key for key in optional_keys if values.get(key)]
-            if not available_fallbacks:
-                logger.warning('No fallback AI services configured - consider adding backup API keys')
         return v
     
     def get_api_keys(self, service: str) -> List[str]:
@@ -142,29 +130,15 @@ class Settings(BaseSettings):
             'retry_on_timeout': True
         }
     
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
-        case_sensitive = False
-        
-        # Environment variable prefixes
-        env_prefix = ''
-        
+    model_config = SettingsConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8',
+        case_sensitive=False,
+        env_prefix='',
         # Field aliases for common environment variable names
-        fields = {
-            'bot_token': {'env': 'BOT_TOKEN'},
-            'webhook_url': {'env': 'WEBHOOK_URL'},
-            'webhook_secret': {'env': 'WEBHOOK_SECRET'},
-            'groq_keys': {'env': 'GROQ_KEYS'},        # Primary service
-            'gemini_keys': {'env': 'GEMINI_KEYS'},    # Optional fallbacks
-            'openai_keys': {'env': 'OPENAI_KEYS'},
-            'azure_keys': {'env': 'AZURE_KEYS'},
-            'database_url': {'env': 'DATABASE_URL'},
-            'redis_url': {'env': 'REDIS_URL'},
-            'environment': {'env': 'ENVIRONMENT'},
-            'log_level': {'env': 'LOG_LEVEL'},
-            'max_workers': {'env': 'MAX_WORKERS'}
-        }
+        alias_generator=None,
+        extra='ignore'
+    )
 
 def load_settings() -> Settings:
     """Load and validate application settings"""

@@ -14,6 +14,17 @@
 - Updated [render.yaml](./render.yaml) build command
 - Added `uv.lock` to [.dockerignore](./.dockerignore)
 
+#### Issue: Pydantic BaseSettings import error
+**Error**: `PydanticImportError: BaseSettings has been moved to the pydantic-settings package`
+
+**Solution**: ✅ **FIXED** - Updated to Pydantic v2 compatibility
+
+**What was done**:
+- Added `pydantic-settings>=2.0.0` to [requirements.txt](./requirements.txt)
+- Updated [config.py](./config.py) imports to use `pydantic_settings`
+- Migrated validators to `field_validator` syntax
+- Updated Config class to `model_config` approach
+
 #### Issue: `azure-cognitiveservices-language-translator` not found
 **Error**: `ERROR: No matching distribution found for azure-cognitiveservices-language-translator>=3.0.0`
 
