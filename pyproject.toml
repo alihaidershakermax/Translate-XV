@@ -1,0 +1,98 @@
+[project]
+name = "translation-bot"
+version = "1.0.0"
+description = "Advanced AI Translation Bot with Multi-API Support"
+authors = ["Translation Bot Team"]
+requires-python = ">=3.11"
+dependencies = [
+    # Core Telegram Bot
+    "python-telegram-bot[webhooks]>=22.3",
+    
+    # AI Translation APIs
+    "groq>=0.31.0",
+    "google-generativeai>=0.8.0", 
+    "openai>=1.50.0",
+    "azure-cognitiveservices-language-translator>=3.0.0",
+    
+    # Document Processing
+    "pdfplumber>=0.11.7",
+    "python-docx>=1.1.0",
+    "python-pptx>=0.6.23",
+    "Pillow>=10.4.0",
+    "pytesseract>=0.3.13",
+    
+    # PDF Creation & Text Processing
+    "reportlab>=4.4.3",
+    "arabic-reshaper>=3.0.0",
+    "python-bidi>=0.6.6",
+    
+    # Database & Caching
+    "redis>=5.0.0",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.13.0",
+    
+    # Web Framework (for health checks)
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    
+    # Performance & Monitoring
+    "asyncio-throttle>=1.0.2",
+    "aiohttp>=3.10.0",
+    "aiofiles>=24.1.0",
+    "prometheus-client>=0.21.0",
+    
+    # Utilities
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.9.0",
+    "typer>=0.12.0",
+    "rich>=13.8.0",
+    "structlog>=24.4.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "black>=24.8.0",
+    "flake8>=7.1.0",
+    "mypy>=1.11.0",
+    "pre-commit>=3.8.0"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[project.scripts]
+bot = "main:main"

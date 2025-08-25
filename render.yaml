@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: translation-bot
+    env: python
+    buildCommand: pip install -e .
+    startCommand: python main.py
+    plan: starter
+    region: oregon
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: GEMINI_KEYS
+        sync: false
+      - key: OPENAI_KEYS
+        sync: false
+      - key: AZURE_KEYS
+        sync: false
+      - key: GROQ_KEYS
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: translation-cache
+          property: connectionString
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: translation-db
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: ENVIRONMENT
+        value: "production"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: MAX_WORKERS
+        value: "4"
+      - key: WEBHOOK_URL
+        value: "https://translation-bot.onrender.com/webhook"
+    autoDeploy: true
+    healthCheckPath: /health
+    
+  - type: redis
+    name: translation-cache
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+    
+  - type: pserv
+    name: translation-db
+    databaseName: translationbot
+    plan: starter
